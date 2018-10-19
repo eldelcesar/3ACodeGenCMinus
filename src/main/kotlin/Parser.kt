@@ -67,8 +67,7 @@ object Parser {
     val factor = (leftParen then expressionRef then rightParen) or
                                          variableRef or call or number
 
-    val term = (termRef then mulop then factor) or
-               factor
+    val term = (termRef then mulop then factor) or factor
 
     val additiveExpression = (additiveExpressionRef then addop then term) or
                              term
