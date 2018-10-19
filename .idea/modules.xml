@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/3ACodeGenCMinus.iml" filepath="$PROJECT_DIR$/3ACodeGenCMinus.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CodeGenerator.iml" filepath="$PROJECT_DIR$/.idea/modules/CodeGenerator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CodeGenerator_main.iml" filepath="$PROJECT_DIR$/.idea/modules/CodeGenerator_main.iml" group="CodeGenerator" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CodeGenerator_test.iml" filepath="$PROJECT_DIR$/.idea/modules/CodeGenerator_test.iml" group="CodeGenerator" />
+    </modules>
+  </component>
+</project>
