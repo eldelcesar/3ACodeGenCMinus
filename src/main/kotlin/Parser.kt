@@ -25,40 +25,74 @@ import LexAnalyzer.semicolon
 import LexAnalyzer.times
 import LexAnalyzer.void_
 import LexAnalyzer.while_
+import com.sun.xml.internal.rngom.parse.host.Base
 import me.sargunvohra.lib.cakeparse.api.*
 import me.sargunvohra.lib.cakeparse.lexer.Token
 import me.sargunvohra.lib.cakeparse.lexer.TokenInstance
 import me.sargunvohra.lib.cakeparse.parser.BaseParser
+import java.util.*
+import kotlin.math.exp
+import kotlin.math.min
 
 object Parser {
 
+    var count = 0
+    val tempStack: Stack<String> = Stack<String>()
+
     // Operators
     val mulop = times or divide
+    val addop = plus or minus
+
 
     // Recursive References
     val termRef: BaseParser<String?> = ref { term }
+    val additiveExpressionRef: BaseParser<String?> = ref { additiveExpression }
+    val expressionRef: BaseParser<String?> = ref { expression }
+
+    var temp = ""
 
     // Rules
-    val factor: BaseParser<String> = number map { it.raw }
-    val term = ((factor and mulop) and termRef map { exp ->
+    val variable: BaseParser<String> = id map { it.raw }
+    val factor: BaseParser<String> = (number map { it.raw }) or variable or ((leftParen then expressionRef before rightParen) map {
+        exp -> val a = exp
+        a?.let { it } ?: throw IllegalStateException()
+    })
+    val term: BaseParser<String> = ((factor and mulop) and termRef map { exp ->
         val (a, b) = exp
+        temp = new_Temp("Term (${a.first}, ${a.second.raw}), $b")
         when (a.second.type) {
-            times -> "${a.first} * $b"
-            divide -> "${a.first} / $b"
+            times -> "\n${tempStack.pop()} = ${a.first} * $b\n"
+            divide -> "\n${tempStack.pop()} = ${a.first} / $b\n"
             else -> throw IllegalStateException()
         }
     }) or factor
+    val additiveExpression = ((term and addop) and additiveExpressionRef map { exp ->
+        val (a, b) = exp
+        temp = new_Temp("AddExp (${a.first}, ${a.second.raw}), $b")
+        when(a.second.type) {
+            plus -> "\n${tempStack.pop()} = ${a.first} + $b\n"
+            minus -> "\n${tempStack.pop()} = ${a.first} - $b\n"
+            else -> throw IllegalStateException()
+        }
+    }) or term
+    val simpleExpression = additiveExpression
+    val expression: BaseParser<String> = ((variable before assign map { it }) and expressionRef map { exp ->
+        val (a, b) = exp
+        "$a = $b\n"
+    }) or simpleExpression
 
-
-    val program = term
-
-
-
-
-
+    val program = expression
 
 
     fun getParser(): BaseParser<Any?> { return program }
+
+    fun new_Temp(whoDidIt: String): String {
+        tempStack.push("t$count")
+        // println("count: t$count by $whoDidIt")
+        this.count++
+        return "t$count"
+    }
+
 
 
     // Recursive Rules
