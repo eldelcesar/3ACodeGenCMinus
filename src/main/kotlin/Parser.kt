@@ -32,8 +32,37 @@ import me.sargunvohra.lib.cakeparse.parser.BaseParser
 
 object Parser {
 
+    // Operators
+    val mulop = times or divide
+
+    // Recursive References
+    val termRef: BaseParser<String?> = ref { term }
+
+    // Rules
+    val factor: BaseParser<String> = number map { it.raw }
+    val term = ((factor and mulop) and termRef map { exp ->
+        val (a, b) = exp
+        when (a.second.type) {
+            times -> "${a.first} * $b"
+            divide -> "${a.first} / $b"
+            else -> throw IllegalStateException()
+        }
+    }) or factor
+
+
+    val program = term
+
+
+
+
+
+
+
+    fun getParser(): BaseParser<Any?> { return program }
+
+
     // Recursive Rules
-    val declarationListRef: BaseParser<TokenInstance> = ref { declarationList }
+    /*val declarationListRef: BaseParser<TokenInstance> = ref { declarationList }
     val additiveExpressionRef: BaseParser<TokenInstance> = ref { additiveExpression }
     val paramListRef: BaseParser<TokenInstance> = ref { paramList }
     val localDeclarationsRef: BaseParser<TokenInstance?> = ref { localDeclarations }
@@ -43,81 +72,53 @@ object Parser {
     val expressionRef: BaseParser<TokenInstance> = ref { expression }
     val termRef: BaseParser<TokenInstance> = ref { term }
     val variableRef: BaseParser<TokenInstance> = ref { variable }
-    val argListRef: BaseParser<TokenInstance> = ref { argList }
+    val argListRef: BaseParser<TokenInstance> = ref { argList }*/
 
 
     // Special characters Rules
+    /*
     val relop = lessEqual or less or more or moreEqual or equal or notEqual
-
     val addop = plus or minus
-
     val mulop = times or divide
-
     val typeSpecifier = int_ or void_
+    */
 
 
     // General Rules
-    val argList = (argListRef then comma then expressionRef) or
-                                          expressionRef
-
+    /*
+    val argList = (argListRef then comma then expressionRef) or expressionRef
     val args = argList or empty<TokenInstance>()
-
     val call = id then leftParen then args then rightParen
-
     val factor = (leftParen then expressionRef then rightParen) or
                                          variableRef or call or number
-
     val term = (termRef then mulop then factor) or factor
-
     val additiveExpression = (additiveExpressionRef then addop then term) or
                              term
-
     val simpleExpression = (additiveExpression then relop then additiveExpression) or
                                                    (additiveExpression)
-
     val variable = id or (id then leftBracket then expressionRef then rightBracket)
-
     val expression = (variable then assign then expressionRef) or
                      (simpleExpression)
-
     val returnSmt = (return_ then semicolon) or
                                             (return_ then expression)
-
     val iterationSmt = while_ then leftParen then expression then statementRef
-
     val selectionSmt = (if_ then leftParen then expression then rightParen then statementRef) or
                        (if_ then leftParen then expression then rightParen then statementRef then else_ then statementRef)
-
-    val expressionSmt = (expression then semicolon) or
-                        semicolon
-
+    val expressionSmt = (expression then semicolon) or semicolon
     val statement = expressionSmt or compoundStmtRef or selectionSmt or iterationSmt or returnSmt
-
-    val statementList = (statementListRef then statement) or
-                        empty<TokenInstance>()
-
+    val statementList = (statementListRef then statement) or empty<TokenInstance>()
     val varDeclaration = (typeSpecifier then id then semicolon) or
                                                  (typeSpecifier then id then leftBracket then number then rightParen then semicolon)
-
-    val localDeclarations = (localDeclarationsRef then varDeclaration) or
-                                                    empty<TokenInstance>()
-
-    val compoundStmt = leftBrace then localDeclarations then statementList then rightBrace
-
+    val localDeclarations = (localDeclarationsRef then varDeclaration) or empty<TokenInstance>()
+    val compoundStmt = leftBrace then localDeclarations map {} then statementList before rightBrace
     val param = (typeSpecifier then id) or
                                          (typeSpecifier then id then leftBracket then rightParen)
-
     val paramList = (paramListRef then comma then param) or
                                             param
-
     val params = paramList or void_
-
     val funDeclaration = typeSpecifier then id then leftParen then params then rightParen then compoundStmt
-
     val declaration = varDeclaration or funDeclaration
-
-    val declarationList = ( declarationListRef then declaration) or
-                                                    declaration
-
+    val declarationList = ( declarationListRef then declaration) or declaration
     val program = declarationList
+    */
 }

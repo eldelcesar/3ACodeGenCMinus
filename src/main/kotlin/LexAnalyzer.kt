@@ -44,9 +44,7 @@ object LexAnalyzer {
     val void_ = token("void", "void")
 
     val lexx: Lexer
-        get() = setOf( number, id, space, comma, leftParen, rightParen,
-                leftBracket, rightBracket, leftBrace, rightBrace,
-                plus, minus, times, divide, more, less, moreEqual,
-                lessEqual, equal, notEqual, assign, while_, if_, else_,
-                return_, int_, void_).lexer()
+        get() = setOf(while_, if_, else_, return_, int_, void_, number, space, comma, leftParen, rightParen,
+                leftBracket, rightBracket, leftBrace, rightBrace, plus, minus, times, divide, more, less, moreEqual,
+                lessEqual, equal, notEqual, assign, id).lexer()
 }
