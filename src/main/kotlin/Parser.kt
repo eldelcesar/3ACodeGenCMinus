@@ -39,6 +39,7 @@ object Parser {
     var countTemp = 0
     var countLabel = 0
     val tempStack: Stack<String> = Stack<String>()
+    val tempLabel: Stack<String> = Stack<String>()
 
     // Recursive References
     val termRef: BaseParser<String?> = ref { term }
@@ -77,9 +78,9 @@ object Parser {
     val call = id and (leftParen then args before rightParen) map {
         exp -> val (a, b) = exp
         new_Temp()
-        var temp = tempStack.pop()
+        val temp = tempStack.pop()
         new_Temp()
-        var temp2 = tempStack.pop()
+        val temp2 = tempStack.pop()
         "begin_args\n" +
                 "$temp = $b\n" +
                 "param $temp\n" +
@@ -92,9 +93,9 @@ object Parser {
         new_Temp()
         new_Temp()
         b?.let {
-            var temp1 = tempStack.pop()
-            var temp2 = tempStack.pop()
-            var temp3 = tempStack.pop()
+            val temp1 = tempStack.pop()
+            val temp2 = tempStack.pop()
+            val temp3 = tempStack.pop()
            "\n$temp3 = sizeof ${a.raw}\n" +
                 "$temp2 = $b * $temp3\n" +
                 "$temp1 = &${a.raw} + $temp1"
@@ -111,34 +112,66 @@ object Parser {
         new_Temp()
         when (a.second.type) {
             times -> {
-                var temp = tempStack.pop()
-                "$temp\n$temp = ${a.first} * $b\n"
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} * $b"
             }
             divide -> {
-                var temp = tempStack.pop()
+                val temp = tempStack.pop()
                 "$temp\n$temp = ${a.first} / $b"
             }
             else -> throw IllegalStateException()
         }
     }) or factor
 
-    val additiveExpression = ((term and addop) and additiveExpressionRef map { exp ->
-        val (a, b) = exp
+    val additiveExpression = ((term and addop) and additiveExpressionRef map {
+        exp -> val (a, b) = exp
         new_Temp()
         when(a.second.type) {
             plus -> {
-                var temp = tempStack.pop()
+                val temp = tempStack.pop()
                 "$temp\n$temp = ${a.first} + $b"
             }
             minus -> {
-                var temp = tempStack.pop()
+                val temp = tempStack.pop()
                 "$temp\n$temp = ${a.first} - $b"
             }
             else -> throw IllegalStateException()
         }
     }) or term
 
-    val simpleExpression = additiveExpression
+    val simpleExpression = (additiveExpression and relop and additiveExpression) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Temp()
+        when(a.second.type) {
+            less -> {
+                val temp1 = tempStack.pop()
+                val temp2 = tempStack.pop()
+                "$temp1\n$temp1 = ${a.first}\n$temp1 = $temp2 < $b"
+            }
+            more -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} > $b"
+            }
+            lessEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} <= $b"
+            }
+            moreEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} >= $b"
+            }
+            equal -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} == $b"
+            }
+            notEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} != $b"
+            }
+            else -> throw IllegalStateException()
+        }
+    } or additiveExpression
 
     val expression: BaseParser<String> = ((variable and assign map { it }) and expressionRef map {
         exp -> val (a, b) = exp
@@ -159,7 +192,8 @@ object Parser {
 
     val compoundStmt = leftBrace then localDeclarations then statementListRef before rightBrace map {
         exp -> val a = exp
-        a?.let { a.toString() }
+        a?.let {
+            a.toString() }
     }
 
     val funDeclaration = typeSpecifier then id and leftParen then params then rightParen and compoundStmt map {
@@ -169,42 +203,48 @@ object Parser {
         } ?: throw IllegalStateException()
     }
 
-    val iterationSmt = ((while_ then leftParen then expressionRef before rightParen) and statementListRef map{
+    val iterationSmt = (while_ then leftParen then expressionRef before rightParen) and statementListRef map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Label()
+        a?.let {
+            val temp = tempStack.pop()
+            val label = tempLabel.pop()
+            "$temp = $a\n" +
+                "if false $temp goto $label\n$b\n" +
+                "Label $label\n"
+        } ?: throw IllegalStateException()
+    }
+
+    val selectionSmt = (((if_ then leftParen then expressionRef before rightParen) and statementListRef) and (else_ then statementListRef) map{
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Label()
+        a.first?.let {
+            val temp = tempStack.pop()
+            val label = tempLabel.pop()
+            "$temp = ${a.first}\nif false $temp goto $label\n${a.second}\n" +
+                "Label $label\n$b"
+        } ?: throw IllegalStateException()
+    }) or ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
         exp -> val (a, b) = exp
         a?.let {
-            "t1 = $it\n if false t1 goto L2\n${b.toString()}"
+            "t1 = $a\n if false t1 goto L1\n$b"
         } ?: throw IllegalStateException()
     })
 
-    val selectionSmt = ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
-        exp -> val (a, b) = exp
-        a?.let {
-            "t1 = $it\n if false t1 goto L1\n${b.toString()}"
-        } ?: throw IllegalStateException()
-    } and (else_ then statementListRef map{
-        exp -> val a = exp
-        a?.let {
-            "Label L1\n$a"
-        } ?: throw IllegalStateException()
-    })) or ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
-        exp -> val (a, b) = exp
-        a?.let {
-            "t1 = $it\n if false t1 goto L1\n${b.toString()}"
-        } ?: throw IllegalStateException()
-    })
-
-    val statement = expressionStmt or compoundStmt or selectionSmt or iterationSmt or varDeclaration
+    val statement = (expressionStmt or compoundStmt or selectionSmt or iterationSmt or varDeclaration) map { it.toString() }
 
     val statementList = (statement and statementListRef map {
         exp -> val (a, b) = exp
         a?.let {
-            b?.let { "$a\n$b" }
+            b?.let { "$a\n$b " }
         } ?: throw IllegalStateException()
     }) or statement
 
     val declaration = varDeclaration or funDeclaration
 
-    val program = declaration
+    val program = declaration or statementList
 
 
 
@@ -218,12 +258,14 @@ object Parser {
     }
 
     fun new_Label(): String {
-        tempStack.push("L$countLabel")
+        tempLabel.push("L$countLabel")
         this.countLabel++
         return "L$countLabel"
     }
 
 
+
+    
 
 
     // Recursive Rules
