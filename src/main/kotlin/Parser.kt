@@ -36,62 +36,151 @@ import kotlin.math.min
 
 object Parser {
 
-    var count = 0
+    var countTemp = 0
+    var countLabel = 0
     val tempStack: Stack<String> = Stack<String>()
-
-    // Operators
-    val mulop = times or divide
-    val addop = plus or minus
-
 
     // Recursive References
     val termRef: BaseParser<String?> = ref { term }
     val additiveExpressionRef: BaseParser<String?> = ref { additiveExpression }
     val expressionRef: BaseParser<String?> = ref { expression }
+    val argListRef: BaseParser<String?> = ref { argList }
+    val statementListRef: BaseParser<Any?> = ref { statementList }
+    val compoundStmtRef: BaseParser<Any?> = ref { compoundStmt }
+    val localDeclarationsRef: BaseParser<Any?> = ref { localDeclarations }
 
-    var temp = ""
+
+
+    // Operators
+    val mulop = times or divide
+    val addop = plus or minus
+    val typeSpecifier = int_ or void_
+
 
     // Rules
-    val variable: BaseParser<String> = id map { it.raw }
-    val factor: BaseParser<String> = (number map { it.raw }) or variable or ((leftParen then expressionRef before rightParen) map {
+
+    val argList: BaseParser<String>  =  expressionRef map { exp ->
+        val a = exp
+        a?.let { it } ?: throw IllegalStateException()
+    } or ((argListRef before comma and expressionRef) map {
+        exp -> val(a,b) = exp
+        a?.let {
+            b?.let {
+                "$a\n$b"
+            }
+        } ?: throw IllegalStateException()
+    })
+
+    val args = argList
+
+    val call = id and (leftParen then args before rightParen) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        var temp = tempStack.pop()
+        new_Temp()
+        var temp2 = tempStack.pop()
+        "begin_args\n" +
+                "$temp = $b\n" +
+                "param $temp\n" +
+                "$temp2 = call ${a.raw}, 1"
+    }
+
+    val variable: BaseParser<String> = (id and (leftBracket then expressionRef before rightBracket) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Temp()
+        new_Temp()
+        b?.let {
+            var temp1 = tempStack.pop()
+            var temp2 = tempStack.pop()
+            var temp3 = tempStack.pop()
+           "\n$temp3 = sizeof ${a.raw}\n" +
+                "$temp2 = $b * $temp3\n" +
+                "$temp1 = &${a.raw} + $temp1"
+        } ?: throw IllegalStateException()
+    }) or (id map { it.raw })
+
+    val factor: BaseParser<String> = (number map { it.raw }) or call or variable or ((leftParen then expressionRef before rightParen) map {
         exp -> val a = exp
         a?.let { it } ?: throw IllegalStateException()
     })
+
     val term: BaseParser<String> = ((factor and mulop) and termRef map { exp ->
         val (a, b) = exp
-        temp = new_Temp("Term (${a.first}, ${a.second.raw}), $b")
+        new_Temp()
         when (a.second.type) {
-            times -> "\n${tempStack.pop()} = ${a.first} * $b\n"
-            divide -> "\n${tempStack.pop()} = ${a.first} / $b\n"
+            times -> {
+                var temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} * $b\n"
+            }
+            divide -> {
+                var temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} / $b"
+            }
             else -> throw IllegalStateException()
         }
     }) or factor
+
     val additiveExpression = ((term and addop) and additiveExpressionRef map { exp ->
         val (a, b) = exp
-        temp = new_Temp("AddExp (${a.first}, ${a.second.raw}), $b")
+        new_Temp()
         when(a.second.type) {
-            plus -> "\n${tempStack.pop()} = ${a.first} + $b\n"
-            minus -> "\n${tempStack.pop()} = ${a.first} - $b\n"
+            plus -> {
+                var temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} + $b"
+            }
+            minus -> {
+                var temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} - $b"
+            }
             else -> throw IllegalStateException()
         }
     }) or term
     val simpleExpression = additiveExpression
-    val expression: BaseParser<String> = ((variable before assign map { it }) and expressionRef map { exp ->
+    val expression: BaseParser<String> = ((variable and assign map { it }) and expressionRef map { exp ->
         val (a, b) = exp
-        "$a = $b\n"
+        "${a.first} ${a.second.raw} $b"
     }) or simpleExpression
 
-    val program = expression
+    val expressionStmt =  expressionRef before semicolon or semicolon
+    
+
+    val varDeclaration = typeSpecifier then id before semicolon map { it}
+
+    val localDeclarations = varDeclaration or (varDeclaration and localDeclarationsRef)
+
+    val compoundStmt = leftBrace then localDeclarations and statementListRef before rightBrace
+
+    val statement = expressionStmt or varDeclaration
 
 
+
+    val statementList = (statement and statementListRef map {
+        exp -> val (a, b) = exp
+        a?.let {
+            b?.let { "$a\n$b" }
+        } ?: throw IllegalStateException()
+    }) or statement
+
+    val program = statementList
+
+
+
+    // Support functions
     fun getParser(): BaseParser<Any?> { return program }
 
-    fun new_Temp(whoDidIt: String): String {
-        tempStack.push("t$count")
-        // println("count: t$count by $whoDidIt")
-        this.count++
-        return "t$count"
+    fun new_Temp(): String {
+        tempStack.push("T$countTemp")
+        this.countTemp++
+        return "T$countTemp"
     }
+
+    fun new_Label(): String {
+        tempStack.push("L$countLabel")
+        this.countLabel++
+        return "L$countLabel"
+    }
+
 
 
 
