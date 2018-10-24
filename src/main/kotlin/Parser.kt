@@ -48,19 +48,20 @@ object Parser {
     val statementListRef: BaseParser<Any?> = ref { statementList }
     val compoundStmtRef: BaseParser<Any?> = ref { compoundStmt }
     val localDeclarationsRef: BaseParser<Any?> = ref { localDeclarations }
+    val paramListRef: BaseParser<Any?> = ref { paramList }
 
 
 
     // Operators
+    val relop = lessEqual or less or more or moreEqual or equal or notEqual
     val mulop = times or divide
     val addop = plus or minus
     val typeSpecifier = int_ or void_
 
 
     // Rules
-
-    val argList: BaseParser<String>  =  expressionRef map { exp ->
-        val a = exp
+    val argList: BaseParser<String>  =  expressionRef map {
+        exp -> val a = exp
         a?.let { it } ?: throw IllegalStateException()
     } or ((argListRef before comma and expressionRef) map {
         exp -> val(a,b) = exp
@@ -105,8 +106,8 @@ object Parser {
         a?.let { it } ?: throw IllegalStateException()
     })
 
-    val term: BaseParser<String> = ((factor and mulop) and termRef map { exp ->
-        val (a, b) = exp
+    val term: BaseParser<String> = ((factor and mulop) and termRef map {
+        exp -> val (a, b) = exp
         new_Temp()
         when (a.second.type) {
             times -> {
@@ -136,24 +137,63 @@ object Parser {
             else -> throw IllegalStateException()
         }
     }) or term
+
     val simpleExpression = additiveExpression
-    val expression: BaseParser<String> = ((variable and assign map { it }) and expressionRef map { exp ->
-        val (a, b) = exp
+
+    val expression: BaseParser<String> = ((variable and assign map { it }) and expressionRef map {
+        exp -> val (a, b) = exp
         "${a.first} ${a.second.raw} $b"
     }) or simpleExpression
 
     val expressionStmt =  expressionRef before semicolon or semicolon
-    
 
-    val varDeclaration = typeSpecifier then id before semicolon map { it}
+    val param = typeSpecifier then id
 
-    val localDeclarations = varDeclaration or (varDeclaration and localDeclarationsRef)
+    val paramList =  param map { "" } or (paramListRef before comma and param map {""})
 
-    val compoundStmt = leftBrace then localDeclarations and statementListRef before rightBrace
+    val params = paramList or void_
 
-    val statement = expressionStmt or varDeclaration
+    val varDeclaration = typeSpecifier then id before semicolon map { "" }
 
+    val localDeclarations = varDeclaration or (varDeclaration and localDeclarationsRef map { "" })
 
+    val compoundStmt = leftBrace then localDeclarations then statementListRef before rightBrace map {
+        exp -> val a = exp
+        a?.let { a.toString() }
+    }
+
+    val funDeclaration = typeSpecifier then id and leftParen then params then rightParen and compoundStmt map {
+        exp -> val (a, b) = exp
+        b?.let {
+            "entry ${a.raw}\n$b"
+        } ?: throw IllegalStateException()
+    }
+
+    val iterationSmt = ((while_ then leftParen then expressionRef before rightParen) and statementListRef map{
+        exp -> val (a, b) = exp
+        a?.let {
+            "t1 = $it\n if false t1 goto L2\n${b.toString()}"
+        } ?: throw IllegalStateException()
+    })
+
+    val selectionSmt = ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
+        exp -> val (a, b) = exp
+        a?.let {
+            "t1 = $it\n if false t1 goto L1\n${b.toString()}"
+        } ?: throw IllegalStateException()
+    } and (else_ then statementListRef map{
+        exp -> val a = exp
+        a?.let {
+            "Label L1\n$a"
+        } ?: throw IllegalStateException()
+    })) or ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
+        exp -> val (a, b) = exp
+        a?.let {
+            "t1 = $it\n if false t1 goto L1\n${b.toString()}"
+        } ?: throw IllegalStateException()
+    })
+
+    val statement = expressionStmt or compoundStmt or selectionSmt or iterationSmt or varDeclaration
 
     val statementList = (statement and statementListRef map {
         exp -> val (a, b) = exp
@@ -162,7 +202,9 @@ object Parser {
         } ?: throw IllegalStateException()
     }) or statement
 
-    val program = statementList
+    val declaration = varDeclaration or funDeclaration
+
+    val program = declaration
 
 
 

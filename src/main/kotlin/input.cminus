@@ -1,2 +1,6 @@
-int x;
-x = 9 * 2;
+int fact (int x) {
+    if (x - 1)
+        y = 2 + 9;
+    else
+        y = 7 + 2;
+}
