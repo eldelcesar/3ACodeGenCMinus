@@ -144,6 +144,14 @@ object Parser {
         new_Temp()
         new_Temp()
         when(a.second.type) {
+            lessEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} <= $b"
+            }
+            moreEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} >= $b"
+            }
             less -> {
                 val temp1 = tempStack.pop()
                 val temp2 = tempStack.pop()
@@ -152,14 +160,6 @@ object Parser {
             more -> {
                 val temp = tempStack.pop()
                 "$temp\n$temp = ${a.first} > $b"
-            }
-            lessEqual -> {
-                val temp = tempStack.pop()
-                "$temp\n$temp = ${a.first} <= $b"
-            }
-            moreEqual -> {
-                val temp = tempStack.pop()
-                "$temp\n$temp = ${a.first} >= $b"
             }
             equal -> {
                 val temp = tempStack.pop()
@@ -242,9 +242,22 @@ object Parser {
         } ?: throw IllegalStateException()
     }) or statement
 
-    val declaration = varDeclaration or funDeclaration
+    /*
+    La gramatica en realidad deberia ser:
 
-    val program = declaration or statementList
+    val declaration = funDeclaration or varDeclaration
+    val declarationList = declarationListRef and declaration or declaration
+    val program = declarationList
+
+    Tiene el statementList como un caso base para que podamos probar
+    las demas funcionalidades.
+
+    El problema que tenemos es con funDeclaration y declarationList
+    porque al parecer no encuentran un caso base y terminan el proceso
+    */
+    // val declaration =  funDeclaration or varDeclaration
+
+    val program = statementList or varDeclaration
 
 
 
@@ -265,7 +278,7 @@ object Parser {
 
 
 
-    
+
 
 
     // Recursive Rules
