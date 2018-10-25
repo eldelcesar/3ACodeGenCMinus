@@ -36,135 +36,265 @@ import kotlin.math.min
 
 object Parser {
 
-    var count = 0
+    var countTemp = 0
+    var countLabel = 0
     val tempStack: Stack<String> = Stack<String>()
-
-    // Operators
-    val mulop = times or divide
-    val addop = plus or minus
-    val typeSpecifier = int_ or void_
-
+    val tempLabel: Stack<String> = Stack<String>()
 
     // Recursive References
     val termRef: BaseParser<String?> = ref { term }
     val additiveExpressionRef: BaseParser<String?> = ref { additiveExpression }
     val expressionRef: BaseParser<String?> = ref { expression }
-    val varDeclarationRef: BaseParser<TokenInstance> = ref { varDeclaration }
-    val compoundStmtRef: BaseParser<Any?> = ref { compoundStmt }
-    val statementRef: BaseParser<Any?> = ref { statement }
-    val selectionSmtref: BaseParser<Any?> = ref { selectionSmt }
-    val returnSmtRef: BaseParser<Any?> = ref { returnSmt }
+    val argListRef: BaseParser<String?> = ref { argList }
     val statementListRef: BaseParser<Any?> = ref { statementList }
+    val compoundStmtRef: BaseParser<Any?> = ref { compoundStmt }
     val localDeclarationsRef: BaseParser<Any?> = ref { localDeclarations }
-    val expressionSmtRef: BaseParser<Any?> = ref { expressionSmt }
+    val paramListRef: BaseParser<Any?> = ref { paramList }
+    val declarationListRef: BaseParser<Any?> = ref { declarationList }
+    val declarationRef: BaseParser<Any?> = ref { declaration }
+    val funDeclarationRef: BaseParser<Any?> = ref { funDeclaration }
+    val varDeclarationRef: BaseParser<Any?> = ref { varDeclaration }
+    val statementRef: BaseParser<Any?> = ref { statement }
+    val expressionStmtRef: BaseParser<Any?> = ref { expressionStmt }
+    val selectionSmtRef: BaseParser<Any?> = ref { selectionSmt }
     val iterationSmtRef: BaseParser<Any?> = ref { iterationSmt }
+    val typeSpecifierRef: BaseParser<Any?> = ref { typeSpecifier }
+    val callRef: BaseParser<String> = ref { call }
+    val paramsRef: BaseParser<Any?> = ref { params }
+    val paramRef: BaseParser<Any?> = ref { param }
+    val variableRef: BaseParser<String> = ref { variable }
+    val simpleExpressionRef: BaseParser<String?> = ref { simpleExpression }
+    val factorRef: BaseParser<String> = ref { factor }
+    val argsRef: BaseParser<String?> = ref { args }
 
 
+    // Operators
+    val relop = lessEqual or less or more or moreEqual or equal or notEqual
+    val mulop = times or divide
+    val addop = plus or minus
+    val typeSpecifier = int_ or void_
 
-    var temp = ""
 
     // Rules
-    val variable: BaseParser<String> = id map { it.raw }
+    val argList: BaseParser<String>  =  expressionRef map {
+        exp -> val a = exp
+        a?.let { it } ?: throw IllegalStateException()
+    } or ((argListRef before comma and expressionRef) map {
+        exp -> val(a,b) = exp
+        a?.let {
+            b?.let {
+                "$a\n$b"
+            }
+        } ?: throw IllegalStateException()
+    })
 
+    val args = argListRef
 
-    val factor: BaseParser<String> = (number map { it.raw }) or variable or ((leftParen then expressionRef before rightParen) map {
+    val call = id and (leftParen then argsRef before rightParen) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        val temp = tempStack.pop()
+        new_Temp()
+        val temp2 = tempStack.pop()
+        "begin_args\n" +
+                "$temp = $b\n" +
+                "param $temp\n" +
+                "$temp2 = call ${a.raw}, 1"
+    }
+
+    val variable: BaseParser<String> = (id and (leftBracket then expressionRef before rightBracket) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Temp()
+        new_Temp()
+        b?.let {
+            val temp1 = tempStack.pop()
+            val temp2 = tempStack.pop()
+            val temp3 = tempStack.pop()
+            "\n$temp3 = sizeof ${a.raw}\n" +
+                    "$temp2 = $b * $temp3\n" +
+                    "$temp1 = &${a.raw} + $temp1"
+        } ?: throw IllegalStateException()
+    }) or (id map { it.raw })
+
+    val factor: BaseParser<String> = (number map { it.raw }) or callRef or variableRef or ((leftParen then expressionRef before rightParen) map {
         exp -> val a = exp
         a?.let { it } ?: throw IllegalStateException()
     })
 
-
-    val term: BaseParser<String> = ((factor and mulop) and termRef map { exp ->
-        val (a, b) = exp
-        temp = new_Temp("Term (${a.first}, ${a.second.raw}), $b")
+    val term: BaseParser<String> = ((factorRef and mulop) and termRef map {
+        exp -> val (a, b) = exp
+        new_Temp()
         when (a.second.type) {
-            times -> "${tempStack.pop()} = ${a.first} * $b\n"
-            divide -> "${tempStack.pop()} = ${a.first} / $b\n"
+            times -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} * $b"
+            }
+            divide -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} / $b"
+            }
             else -> throw IllegalStateException()
         }
     }) or factor
 
-
-    val additiveExpression = ((term and addop) and additiveExpressionRef
-            map { exp -> val (a, b) = exp
-        temp = new_Temp("AddExp (${a.first}, ${a.second.raw}), $b")
+    val additiveExpression = ((termRef and addop) and additiveExpressionRef map {
+        exp -> val (a, b) = exp
+        new_Temp()
         when(a.second.type) {
-            plus -> "${tempStack.pop()} = ${a.first} + $b\n"
-            minus -> "${tempStack.pop()} = ${a.first} - $b\n"
+            plus -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} + $b"
+            }
+            minus -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} - $b"
+            }
             else -> throw IllegalStateException()
         }
     }) or term
 
-
-    val simpleExpression = additiveExpression
-
-
-    val returnSmt = (return_ then semicolon) or (return_ then expressionRef)
-
-
-    val statementList = (statementListRef then statementRef) or empty<TokenInstance>()
-
-
-    val varDeclaration = (typeSpecifier then id then semicolon) or
-            (typeSpecifier then id then leftBracket then number then rightBracket then semicolon)
-
-
-    val localDeclarations = (localDeclarationsRef then varDeclarationRef) or empty<TokenInstance>()
-
-
-    val compoundStmt = leftBrace then localDeclarationsRef and statementListRef before rightBrace
-
-
-
-    val expressionSmt = (expressionRef before semicolon) or semicolon
-
-
-
-    val statement = expressionSmtRef or compoundStmtRef or selectionSmtref or iterationSmtRef  or returnSmtRef
-
-
-    val iterationSmt = ( (while_ then leftParen then expressionRef before rightParen) and statementRef
-            map{exp -> val (a, b) = exp
-        a?.let {
-            "t1 = $it\n if false t1 goto L2\n${b.toString()}"
+    val simpleExpression = (additiveExpressionRef and relop and additiveExpressionRef) map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Temp()
+        when(a.second.type) {
+            lessEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} <= $b"
+            }
+            moreEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} >= $b"
+            }
+            less -> {
+                val temp1 = tempStack.pop()
+                val temp2 = tempStack.pop()
+                "$temp1\n$temp1 = ${a.first}\n$temp1 = $temp2 < $b"
+            }
+            more -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} > $b"
+            }
+            equal -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} == $b"
+            }
+            notEqual -> {
+                val temp = tempStack.pop()
+                "$temp\n$temp = ${a.first} != $b"
+            }
+            else -> throw IllegalStateException()
         }
+    } or additiveExpressionRef
 
+    val expression: BaseParser<String?> = ((variableRef and assign map { it }) and expressionRef map {
+        exp -> val (a, b) = exp
+        "${a.first} ${a.second.raw} $b"
+    }) or simpleExpressionRef
+
+    val expressionStmt =  expressionRef before semicolon or semicolon
+
+    val param = typeSpecifierRef then id
+
+    val paramList =  paramRef map { "" } or (paramListRef before comma and paramRef map {""})
+
+    val params = paramListRef or void_
+
+    val varDeclaration = typeSpecifierRef then id before semicolon map { "" }
+
+    val localDeclarations = localDeclarationsRef and varDeclarationRef
+
+    val compoundStmt = leftBrace then localDeclarationsRef then statementListRef before rightBrace map {
+        exp -> val a = exp
+        a?.let {
+            a.toString() }
+    }
+
+    val funDeclaration = typeSpecifierRef then id and (leftParen then paramsRef before rightParen) map {
+        exp -> val (a, b) = exp
+        b?.let {
+            "entry ${a.raw}\n$b" + "\nreturn 1"
+        } ?: throw IllegalStateException()
+    } and compoundStmtRef
+
+    val iterationSmt = (while_ then leftParen then expressionRef before rightParen) and statementListRef map {
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Label()
+        a?.let {
+            val temp = tempStack.pop()
+            val label = tempLabel.pop()
+            "$temp = $a\n" +
+                    "if false $temp goto $label\n$b\n" +
+                    "Label $label\n"
+        } ?: throw IllegalStateException()
+    }
+
+    val selectionSmt = (((if_ then leftParen then expressionRef before rightParen) and statementListRef) and (else_ then statementListRef) map{
+        exp -> val (a, b) = exp
+        new_Temp()
+        new_Label()
+        a.first?.let {
+            val temp = tempStack.pop()
+            val label = tempLabel.pop()
+            "$temp = ${a.first}\nif false $temp goto $label\n${a.second}\n" +
+                    "Label $label\n$b"
+        } ?: throw IllegalStateException()
+    }) or ((if_ then leftParen then expressionRef before rightParen) and statementListRef map{
+        exp -> val (a, b) = exp
+        a?.let {
+            "t1 = $a\n if false t1 goto L1\n$b"
+        } ?: throw IllegalStateException()
     })
 
-    val selectionSmt = ( (if_ then leftParen then expressionRef before rightParen) and statementRef
-            map{exp -> val (a, b) = exp
-        a?.let {
-            "t1 = $it\n if false t1 goto L1\n${b.toString()}"
-        }
+    val statement = (expressionStmtRef or compoundStmtRef or selectionSmtRef or iterationSmtRef or varDeclarationRef) map { it.toString() }
 
-    })  or  ( (if_ then leftParen then expressionRef before rightParen) and statementRef map{
+    val statementList = (statementRef and statementListRef map {
         exp -> val (a, b) = exp
         a?.let {
-            "t1 = $it\n if false t1 goto L1\n${b.toString()}"}
-    } then (else_ and statementRef map{
-        exp -> val (a, b) = exp
-        a?.let {
-            "Label L1\n${b.toString()}"}
-    }))
+            b?.let { "$a\n$b " }
+        } ?: throw IllegalStateException()
+    }) or statementRef
 
+    /*
+    La gramatica en realidad deberia ser:
 
+    val declaration = funDeclaration or varDeclaration
+    val declarationList = declarationListRef and declaration or declaration
+    val program = declarationList
 
-    val expression: BaseParser<String> = ((variable before assign map { it }) and expressionRef map { exp ->
-        val (a, b) = exp
-        "$a = $b\n"
-    }) or simpleExpression
+    Tiene el statementList como un caso base para que podamos probar
+    las demas funcionalidades.
 
+    El problema que tenemos es con funDeclaration y declarationList
+    porque al parecer no encuentran un caso base y terminan el proceso
+    */
+    // val declaration =  funDeclaration or varDeclaration
 
-    val program = expression
+    //val program = statementListRef or varDeclarationRef
 
+    val declaration = funDeclarationRef or statementListRef or varDeclarationRef
+    val declarationList = declarationRef
+    val program = declarationListRef
 
+    // Support functions
     fun getParser(): BaseParser<Any?> { return program }
 
-    fun new_Temp(whoDidIt: String): String {
-        tempStack.push("t$count")
-        // println("count: t$count by $whoDidIt")
-        this.count++
-        return "t$count"
+    fun new_Temp(): String {
+        tempStack.push("T$countTemp")
+        this.countTemp++
+        return "T$countTemp"
     }
+
+    fun new_Label(): String {
+        tempLabel.push("L$countLabel")
+        this.countLabel++
+        return "L$countLabel"
+    }
+
+
+
 
 
 
