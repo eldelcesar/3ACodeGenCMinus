@@ -197,13 +197,13 @@ object Parser {
 
     val param = typeSpecifierRef then id
 
-    val paramList =  paramRef map { "" } or (paramListRef before comma and paramRef map {""})
+    val paramList =  (paramRef before comma and paramListRef map {""}) or paramRef map { "" }
 
     val params = paramListRef or void_
 
     val varDeclaration = typeSpecifierRef then id before semicolon map { "" }
 
-    val localDeclarations = localDeclarationsRef and varDeclarationRef
+    val localDeclarations = (varDeclarationRef and localDeclarationsRef) or varDeclarationRef
 
     val compoundStmt = leftBrace then localDeclarationsRef then statementListRef before rightBrace map {
         exp -> val a = exp
@@ -211,12 +211,15 @@ object Parser {
             a.toString() }
     }
 
+    val returnSmt = (return_ before semicolon map { it.raw }) or (return_ and expressionRef before semicolon map { "${it.first.raw} ${it.second}" })
+
     val funDeclaration = typeSpecifierRef then id and (leftParen then paramsRef before rightParen) map {
         exp -> val (a, b) = exp
         b?.let {
-            "entry ${a.raw}\n$b" + "\nreturn 1"
+            "entry ${a.raw}\n$b"
         } ?: throw IllegalStateException()
-    } and compoundStmtRef
+    } and compoundStmt
+
 
     val iterationSmt = (while_ then leftParen then expressionRef before rightParen) and statementListRef map {
         exp -> val (a, b) = exp
@@ -248,7 +251,7 @@ object Parser {
         } ?: throw IllegalStateException()
     })
 
-    val statement = (expressionStmtRef or compoundStmtRef or selectionSmtRef or iterationSmtRef or varDeclarationRef) map { it.toString() }
+    val statement = (expressionStmtRef or compoundStmtRef or selectionSmtRef or iterationSmtRef or varDeclarationRef or returnSmt) map { it.toString() }
 
     val statementList = (statementRef and statementListRef map {
         exp -> val (a, b) = exp
@@ -257,26 +260,10 @@ object Parser {
         } ?: throw IllegalStateException()
     }) or statementRef
 
-    /*
-    La gramatica en realidad deberia ser:
 
-    val declaration = funDeclaration or varDeclaration
-    val declarationList = declarationListRef and declaration or declaration
+    val declaration = funDeclarationRef or varDeclarationRef
+    val declarationList = (declaration and declarationListRef) or declaration
     val program = declarationList
-
-    Tiene el statementList como un caso base para que podamos probar
-    las demas funcionalidades.
-
-    El problema que tenemos es con funDeclaration y declarationList
-    porque al parecer no encuentran un caso base y terminan el proceso
-    */
-    // val declaration =  funDeclaration or varDeclaration
-
-    //val program = statementListRef or varDeclarationRef
-
-    val declaration = funDeclarationRef or statementListRef or varDeclarationRef
-    val declarationList = declarationRef
-    val program = declarationListRef
 
     // Support functions
     fun getParser(): BaseParser<Any?> { return program }
