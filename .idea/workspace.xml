@@ -4,7 +4,6 @@
     <list default="true" id="566f965c-c8a6-415a-b347-66e2e6e2632f" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Parser.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/input.cminus" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/input.cminus" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/.gradle/" />
     <ignored path="$PROJECT_DIR$/build/" />
@@ -52,35 +51,35 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="cminus" value="430" />
-          <entry key="kt" value="6791" />
+          <entry key="cminus" value="481" />
+          <entry key="kt" value="6859" />
           <entry key="txt" value="176" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Kotlin" value="6791" />
-          <entry key="PLAIN_TEXT" value="606" />
+          <entry key="Kotlin" value="6859" />
+          <entry key="PLAIN_TEXT" value="657" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/kotlin/input.cminus">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="45">
-              <caret line="3" column="14" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="14" />
+              <caret line="3" column="30" lean-forward="true" selection-start-line="3" selection-start-column="30" selection-end-line="3" selection-end-column="30" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/kotlin/Parser.kt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="485">
-              <caret line="260" column="31" selection-start-line="260" selection-start-column="31" selection-end-line="260" selection-end-column="31" />
+            <state relative-caret-position="163">
+              <caret line="196" column="78" selection-start-line="196" selection-start-column="78" selection-end-line="196" selection-end-column="78" />
               <folding>
                 <element signature="e#0#1032#0" expanded="true" />
               </folding>
@@ -111,6 +110,10 @@
       <find>addi</find>
       <find>call</find>
       <find>selec</find>
+      <find>beg</find>
+      <find>it</find>
+      <find>while</find>
+      <find>semicolon</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -529,8 +532,8 @@
       <list>
         <option value="$PROJECT_DIR$/src/main/kotlin/Main.kt" />
         <option value="$PROJECT_DIR$/src/main/kotlin/LexAnalyzer.kt" />
-        <option value="$PROJECT_DIR$/src/main/kotlin/input.cminus" />
         <option value="$PROJECT_DIR$/src/main/kotlin/Parser.kt" />
+        <option value="$PROJECT_DIR$/src/main/kotlin/input.cminus" />
       </list>
     </option>
   </component>
@@ -674,17 +677,24 @@
       <option name="project" value="LOCAL" />
       <updated>1540398620053</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Test completo y comentarios de problema">
+      <created>1540512892012</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1540512892012</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="52525000" />
+    <option name="totallyTimeSpent" value="53984000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="792" height="900" extended-state="0" />
+    <frame x="0" y="0" width="1440" height="900" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.108" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.057939913" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Designer" order="2" />
       <window_info id="Image Layers" order="3" />
@@ -792,20 +802,20 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/kotlin/input.cminus">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="14" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/kotlin/Parser.kt">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="485">
-          <caret line="260" column="31" selection-start-line="260" selection-start-column="31" selection-end-line="260" selection-end-column="31" />
+        <state relative-caret-position="163">
+          <caret line="196" column="78" selection-start-line="196" selection-start-column="78" selection-end-line="196" selection-end-column="78" />
           <folding>
             <element signature="e#0#1032#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/kotlin/input.cminus">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="30" lean-forward="true" selection-start-line="3" selection-start-column="30" selection-end-line="3" selection-end-column="30" />
         </state>
       </provider>
     </entry>

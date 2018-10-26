@@ -96,7 +96,8 @@ object Parser {
         val temp = tempStack.pop()
         new_Temp()
         val temp2 = tempStack.pop()
-        "begin_args\n" +
+        "$temp2\n" +
+                "begin_args\n" +
                 "$temp = $b\n" +
                 "param $temp\n" +
                 "$temp2 = call ${a.raw}, 1"
@@ -193,7 +194,7 @@ object Parser {
         "${a.first} ${a.second.raw} $b"
     }) or simpleExpressionRef
 
-    val expressionStmt =  expressionRef before semicolon or semicolon
+    val expressionStmt =  expressionRef before semicolon or (semicolon map { "" })
 
     val param = typeSpecifierRef then id
 
