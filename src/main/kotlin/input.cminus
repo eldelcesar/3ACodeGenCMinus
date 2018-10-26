@@ -1,10 +1,14 @@
-y = 8 + 2;
-while (x > 1)
-    z = 2 + 9 < 4;
+int fact(int x)
+{
     if (x > 1)
-        y = 2 + 9;
+        return x * fact(x - 1);
     else
-        y = 7 + 2;
+        return 1;
+}
 
-    z = 9 + 3;
-z = y;
+void main( void )
+{
+    int x;
+    x = read();
+    if (x > 0) write(fact(x));
+}
